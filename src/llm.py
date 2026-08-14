@@ -14,8 +14,7 @@ def _call_gemini(prompt: str) -> str:
     url = GEMINI_URL.format(model=config.GEMINI_MODEL)
     resp = requests.post(
         url,
-        params={"key": config.GEMINI_API_KEY},
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", "x-goog-api-key": config.GEMINI_API_KEY},
         data=json.dumps({
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.4, "maxOutputTokens": 4096},
