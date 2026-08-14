@@ -62,7 +62,7 @@ GITHUB_KEYWORDS = ["AI agent", "LLM agent", "agentic AI", "MCP server", "AI codi
 # "AI agent". So the high-star pass reuses the same multi-word keywords,
 # just with a much higher per-page limit (see GITHUB_HOT_MAX_RESULTS).
 GITHUB_MIN_STARS = 40            # bar for the "new repo" pass
-GITHUB_HOT_MIN_STARS = 1000      # bar for the "established/high-star" pass
+GITHUB_HOT_MIN_STARS = 3000      # bar for the "established/high-star" pass — raised from 1000 to focus on genuinely popular tools; day-to-day momentum is now covered separately by fetch_github_star_trending()
 GITHUB_LOOKBACK_DAYS = 7         # new-repo pass: created within last N days
 GITHUB_MAX_RESULTS_PER_TOPIC = 10
 GITHUB_HOT_MAX_RESULTS = 100     # GitHub's API max per_page — needed for relevant repos to rank within reach
@@ -117,7 +117,15 @@ not a refresher on tools they already know. They care most about:
   week" for a repo to qualify. Treat star count (given in the meta field) as a
   real signal of quality/traction throughout — a repo with 5,000 stars is worth
   surfacing even if it's a year old, as long as it's still being actively
-  developed and directly relevant to agents/LLM tooling.
+  developed and directly relevant to agents/LLM tooling. Some GitHub items are
+  tagged "trending" in meta with a stars-gained-today/this-week figure (e.g.
+  "+4,475 today") — that's a genuine "gaining popularity right now" signal,
+  worth weighing highly. IMPORTANT: trending items are pulled from GitHub's
+  overall trending page with no AI-specific filtering, so most will be
+  completely unrelated (a browser extension, an OSINT tool, etc.) — apply the
+  same AI-engineer relevance judgment to these as to everything else; a
+  trending repo that isn't AI/agent/LLM-relevant should simply be skipped,
+  its trending status alone doesn't make it belong in this digest.
 - Research papers on evaluation, benchmarking, and agent capability measurement
   are especially high-value — new benchmarks, new evals, papers exposing gaps in
   how agents/models are currently measured

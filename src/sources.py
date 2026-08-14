@@ -12,6 +12,7 @@ Every fetcher is defensive: a failure in one source should never crash the
 whole run, so each is wrapped in try/except at the call site in main.py.
 """
 
+import re
 import time
 import datetime
 import requests
@@ -109,6 +110,63 @@ def fetch_github_trending():
     hot_items = sorted([i for i in deduped if i["meta"].endswith("high-star")], key=stars, reverse=True)
     half = config.GITHUB_TOTAL_CAP // 2
     return new_items[:half] + hot_items[:config.GITHUB_TOTAL_CAP - half]
+
+
+def _fetch_github_trending_page(since):
+    """Scrape github.com/trending — GitHub's own algorithm for 'gaining
+    popularity right now', based on stars gained in the period, not total
+    stars or push/creation dates. This is NOT keyword-filtered at all (no
+    search query, no topic, no language restriction) — it's the actual fix
+    for 'diverse, not limited to keyword matching': a repo about anything
+    can show up here as long as it's genuinely trending, and downstream
+    curation (priority-keyword sort + the LLM's own judgment) decides
+    relevance, rather than a pre-filter deciding what's even visible.
+
+    No official API for this exists; the page is static server-rendered
+    HTML (verified — no JS needed), parsed here with regex rather than
+    adding an HTML-parsing dependency for one source.
+    """
+    items = []
+    url = f"https://github.com/trending?since={since}"
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=20)
+        resp.raise_for_status()
+        html = resp.text
+        blocks = html.split('<article class="Box-row">')[1:]
+        for block in blocks:
+            h2_match = re.search(r'<h2 class="h3 lh-condensed">.*?href="/([^"]+)"', block, re.DOTALL)
+            if not h2_match:
+                continue
+            full_name = h2_match.group(1)
+            desc_match = re.search(r'<p class="col-9 color-fg-muted my-1 tmp-pr-4">\s*(.*?)\s*</p>', block, re.DOTALL)
+            lang_match = re.search(r'itemprop="programmingLanguage">([^<]*)</span>', block)
+            period_match = re.search(r'([\d,]+)\s*stars?\s*(today|this week)', block)
+            total_match = re.search(r'/stargazers"[^>]*>.*?</svg>\s*([\d,]+)</a>', block, re.DOTALL)
+
+            description = re.sub(r"\s+", " ", desc_match.group(1)).strip() if desc_match else ""
+            language = lang_match.group(1) if lang_match else "n/a"
+            period_stars = period_match.group(1) if period_match else "?"
+            period_label = period_match.group(2) if period_match else since
+            total_stars = total_match.group(1) if total_match else "?"
+
+            items.append({
+                "title": full_name,
+                "link": f"https://github.com/{full_name}",
+                "source": "GitHub",
+                "summary": description,
+                "meta": f"{total_stars}★ total (+{period_stars} {period_label}) · {language} · trending",
+            })
+    except Exception as e:
+        print(f"[github-trending:{since}] fetch failed: {e}")
+    return items
+
+
+def fetch_github_star_trending():
+    items = []
+    items.extend(_fetch_github_trending_page("daily"))
+    time.sleep(1)
+    items.extend(_fetch_github_trending_page("weekly"))
+    return items
 
 
 def fetch_arxiv():
@@ -210,6 +268,7 @@ def fetch_all():
     all_items = []
     fetchers = [
         ("GitHub", fetch_github_trending),
+        ("GitHub Trending", fetch_github_star_trending),
         ("arXiv", fetch_arxiv),
         ("Hacker News", fetch_hackernews),
         ("RSS Blogs", fetch_rss),
