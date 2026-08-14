@@ -42,6 +42,12 @@ MAX_ITEMS_FOR_PROMPT = 50
 # pushed to the front of the list before the MAX_ITEMS_FOR_PROMPT cap is
 # applied, so they survive even when raw fetch volume is high.
 PRIORITY_KEYWORDS = ["benchmark", "evaluation", "eval", "agent", "agentic"]
+# Guaranteed minimum slots per source category (GitHub / arXiv / Hacker News
+# / RSS) in the capped prompt, applied before filling remaining slots by
+# keyword priority — without this, a high-volume source (e.g. GitHub
+# returning 70+ items, most matching the priority keywords) can crowd every
+# other source out of the cap entirely.
+MIN_ITEMS_PER_SOURCE = 8
 
 # ---------------------------------------------------------------------------
 # GitHub repos (via official Search API). Free-text keyword search

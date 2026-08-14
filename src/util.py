@@ -50,6 +50,36 @@ def prioritize_keywords(items, keywords):
     return sorted(items, key=lambda item: not matches(item))
 
 
+def cap_with_source_floor(items, max_total, min_per_category, category_fn, priority_keywords):
+    """Cap items to max_total while guaranteeing each source category at
+    least min_per_category slots (if it has that many items available),
+    before filling the rest by keyword priority across everything.
+
+    Without this, a single high-volume source (e.g. GitHub returning 70+
+    items where most match the priority keywords) can crowd every other
+    source's items out of the cap entirely, even ones that would otherwise
+    be included — arXiv/HN/RSS sections came back thin or empty in testing
+    once GitHub volume grew.
+    """
+    by_category = {}
+    for item in items:
+        by_category.setdefault(category_fn(item), []).append(item)
+
+    guaranteed = []
+    remaining_pool = []
+    for cat, cat_items in by_category.items():
+        cat_items = prioritize_keywords(cat_items, priority_keywords)
+        guaranteed.extend(cat_items[:min_per_category])
+        remaining_pool.extend(cat_items[min_per_category:])
+
+    guaranteed = prioritize_keywords(guaranteed, priority_keywords)[:max_total]
+    slots_left = max_total - len(guaranteed)
+    if slots_left > 0:
+        remaining_pool = prioritize_keywords(remaining_pool, priority_keywords)
+        guaranteed.extend(remaining_pool[:slots_left])
+    return guaranteed
+
+
 def chunk_text(text: str, max_len: int = 4000):
     """Split text into chunks under max_len, breaking on paragraph boundaries
     where possible so Telegram messages don't get cut mid-sentence."""

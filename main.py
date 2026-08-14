@@ -8,7 +8,7 @@ import sys
 import datetime
 
 from src import config, sources, llm, telegram_sender
-from src.util import dedupe_items, prioritize_keywords
+from src.util import dedupe_items, cap_with_source_floor
 
 
 def main():
@@ -25,9 +25,19 @@ def main():
     print(f"After dedupe: {len(deduped)} items")
 
     if len(deduped) > config.MAX_ITEMS_FOR_PROMPT:
-        deduped = prioritize_keywords(deduped, config.PRIORITY_KEYWORDS)
-        print(f"Capping to {config.MAX_ITEMS_FOR_PROMPT} items for LLM prompt (was {len(deduped)}, priority keywords applied)")
-        deduped = deduped[:config.MAX_ITEMS_FOR_PROMPT]
+        before = len(deduped)
+
+        def category(item):
+            src = item.get("source", "")
+            if src in ("GitHub", "arXiv", "Hacker News"):
+                return src
+            return "RSS"  # RSS items are tagged with their feed name (e.g. "OpenAI"), bucket together
+
+        deduped = cap_with_source_floor(
+            deduped, config.MAX_ITEMS_FOR_PROMPT, config.MIN_ITEMS_PER_SOURCE,
+            category, config.PRIORITY_KEYWORDS,
+        )
+        print(f"Capping to {config.MAX_ITEMS_FOR_PROMPT} items for LLM prompt (was {before}, per-source floor + priority keywords applied)")
 
     print("Calling LLM for synthesis...")
     digest_markdown = llm.synthesize_digest(deduped)
