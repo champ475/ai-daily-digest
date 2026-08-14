@@ -1,4 +1,5 @@
 import json
+import time
 import requests
 
 from . import config
@@ -54,7 +55,17 @@ def call_llm(prompt: str) -> str:
     try:
         return _call_gemini(prompt)
     except Exception as e:
-        print(f"[llm] Gemini failed, falling back to Groq: {e}")
+        # Google's free tier occasionally returns transient 503s under load —
+        # worth one quick retry before giving up on Gemini for the run.
+        if "503" in str(e):
+            print(f"[llm] Gemini 503 (transient), retrying once: {e}")
+            time.sleep(5)
+            try:
+                return _call_gemini(prompt)
+            except Exception as e2:
+                print(f"[llm] Gemini retry failed, falling back to Groq: {e2}")
+        else:
+            print(f"[llm] Gemini failed, falling back to Groq: {e}")
 
     if not config.GROQ_API_KEYS:
         raise RuntimeError("No Groq API keys set (GROQ_API_KEY / GROQ_API_KEY_2)")

@@ -28,10 +28,14 @@ if config.GITHUB_TOKEN:
 
 
 def fetch_github_trending():
+    """Search for repos CREATED recently, not just pushed to recently.
+    'pushed:>date' sorted by stars surfaces huge established repos (they get
+    pushed to constantly) and drowns out genuinely new launches — 'created'
+    is the actual "this is new" signal."""
     items = []
     since_date = (datetime.datetime.utcnow() - datetime.timedelta(days=config.GITHUB_LOOKBACK_DAYS)).strftime("%Y-%m-%d")
     for topic in config.GITHUB_TOPICS:
-        query = f"topic:{topic} pushed:>{since_date} stars:>={config.GITHUB_MIN_STARS}"
+        query = f"topic:{topic} created:>{since_date} stars:>={config.GITHUB_MIN_STARS}"
         url = "https://api.github.com/search/repositories"
         params = {"q": query, "sort": "stars", "order": "desc", "per_page": config.GITHUB_MAX_RESULTS_PER_TOPIC}
         try:

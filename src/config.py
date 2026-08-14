@@ -33,11 +33,15 @@ MAX_ITEMS_FOR_PROMPT = 70
 
 # ---------------------------------------------------------------------------
 # GitHub trending repos (via official Search API, topic-based)
+# Filtered on repo CREATION date, not push date — broad topics like
+# "artificial-intelligence"/"machine-learning" mostly surface huge
+# established repos (they push constantly) and were dropped in favor of
+# narrower agent/tooling-focused topics.
 # ---------------------------------------------------------------------------
-GITHUB_TOPICS = ["artificial-intelligence", "llm", "ai-agents", "machine-learning"]
-GITHUB_MIN_STARS = 50          # ignore tiny/no-signal repos
-GITHUB_LOOKBACK_DAYS = 3        # repos pushed to within last N days
-GITHUB_MAX_RESULTS_PER_TOPIC = 15
+GITHUB_TOPICS = ["ai-agents", "llm-agent", "agentic-ai", "mcp", "llm", "ai-coding-assistant"]
+GITHUB_MIN_STARS = 15           # lower bar — new repos haven't had time to accumulate stars yet
+GITHUB_LOOKBACK_DAYS = 7         # repos created within last N days
+GITHUB_MAX_RESULTS_PER_TOPIC = 12
 
 # ---------------------------------------------------------------------------
 # arXiv categories to pull recent papers from
@@ -72,14 +76,29 @@ RSS_LOOKBACK_HOURS = 30   # slightly over 24h to avoid gaps from cron drift
 # What the LLM should optimize the final picks for. Edit this freely — it's
 # the single biggest lever on digest quality/relevance over time.
 CURATION_FOCUS = """
-The reader is an AI engineer/developer. They care most about:
-- New AI models, product launches, and major capability updates
-- Agent frameworks, dev tooling, and anything that helps build AI applications
-- GitHub repos and open-source tools that are new or gaining fast traction
-- Research papers with practical or notable implications (not just incremental)
+The reader is an AI engineer/developer who wants to know what's NEW today —
+not a refresher on tools they already know. They care most about:
+- New AI models, product launches, and major capability updates announced today
+- New or recently-launched agent frameworks, agentic workflows, agent skills/tools,
+  and dev tooling for building AI applications (e.g. a new agent harness, a new
+  MCP server, a new coding-agent skill, a new memory/context system for agents)
+- GitHub repos that are NEW or fast-growing RIGHT NOW — not repos that are simply
+  popular or get pushed to daily. A repo with fewer stars but launched this week is
+  more interesting than a 50k-star repo with a routine commit.
+- Research papers on evaluation, benchmarking, and agent capability measurement
+  are especially high-value — new benchmarks, new evals, papers exposing gaps in
+  how agents/models are currently measured
+- Other research with real practical or notable implications (not just incremental)
 - Startup/funding news only when it signals a real shift (new major player, big raise, acquisition)
-Skip generic AI hype pieces, opinion pieces without new information, and anything
-that's a minor version bump or purely marketing fluff.
+
+Aggressively deprioritize or skip entirely:
+- Long-established, widely-known projects (e.g. TensorFlow, PyTorch, LangChain,
+  AutoGPT, Streamlit, Transformers) UNLESS there's a genuinely new, notable
+  development about them specifically today — being in the raw item list is not
+  enough, "X is a popular repo for Y" is not news
+- Generic AI hype pieces, opinion pieces without new information
+- Minor version bumps or purely marketing fluff
+- Filler descriptions that just restate what a well-known tool does
 """
 
 MAX_TOP_STORIES = 8
