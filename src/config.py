@@ -61,7 +61,7 @@ ARXIV_MAX_RESULTS = 40
 # Hacker News (via Algolia search API) — search terms to pull "front page"-ish
 # AI-relevant discussion from the last day
 # ---------------------------------------------------------------------------
-HN_QUERIES = ["AI", "LLM", "agent", "OpenAI", "Anthropic", "GitHub Copilot"]
+HN_QUERIES = ["AI agent", "LLM benchmark", "AI coding", "MCP", "AI eval", "open source AI"]
 HN_MIN_POINTS = 30
 HN_MAX_RESULTS_PER_QUERY = 15
 
