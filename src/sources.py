@@ -22,6 +22,10 @@ from . import config
 USER_AGENT = "ai-daily-digest/1.0 (personal news aggregator)"
 HEADERS = {"User-Agent": USER_AGENT}
 
+GITHUB_HEADERS = dict(HEADERS)
+if config.GITHUB_TOKEN:
+    GITHUB_HEADERS["Authorization"] = f"Bearer {config.GITHUB_TOKEN}"
+
 
 def fetch_github_trending():
     items = []
@@ -31,7 +35,7 @@ def fetch_github_trending():
         url = "https://api.github.com/search/repositories"
         params = {"q": query, "sort": "stars", "order": "desc", "per_page": config.GITHUB_MAX_RESULTS_PER_TOPIC}
         try:
-            resp = requests.get(url, params=params, headers=HEADERS, timeout=20)
+            resp = requests.get(url, params=params, headers=GITHUB_HEADERS, timeout=20)
             resp.raise_for_status()
             data = resp.json()
             for repo in data.get("items", []):
@@ -50,7 +54,7 @@ def fetch_github_trending():
 
 def fetch_arxiv():
     items = []
-    cat_query = "+OR+".join(f"cat:{c}" for c in config.ARXIV_CATEGORIES)
+    cat_query = " OR ".join(f"cat:{c}" for c in config.ARXIV_CATEGORIES)
     url = "https://export.arxiv.org/api/query"
     params = {
         "search_query": cat_query,
@@ -109,13 +113,38 @@ def fetch_hackernews():
     return items
 
 
+def _get_reddit_token():
+    """App-only OAuth (client_credentials grant) — read-only access, no user login needed."""
+    if not (config.REDDIT_CLIENT_ID and config.REDDIT_CLIENT_SECRET):
+        return None
+    try:
+        resp = requests.post(
+            "https://www.reddit.com/api/v1/access_token",
+            data={"grant_type": "client_credentials"},
+            auth=(config.REDDIT_CLIENT_ID, config.REDDIT_CLIENT_SECRET),
+            headers=HEADERS,
+            timeout=20,
+        )
+        resp.raise_for_status()
+        return resp.json().get("access_token")
+    except Exception as e:
+        print(f"[reddit] token fetch failed: {e}")
+        return None
+
+
 def fetch_reddit():
     items = []
+    token = _get_reddit_token()
+    if not token:
+        print("[reddit] no OAuth token (REDDIT_CLIENT_ID/SECRET not set or auth failed), skipping")
+        return items
+    auth_headers = dict(HEADERS)
+    auth_headers["Authorization"] = f"Bearer {token}"
     for sub in config.REDDIT_SUBREDDITS:
-        url = f"https://www.reddit.com/r/{sub}/top.json"
+        url = f"https://oauth.reddit.com/r/{sub}/top.json"
         params = {"t": "day", "limit": config.REDDIT_MAX_RESULTS_PER_SUB}
         try:
-            resp = requests.get(url, params=params, headers=HEADERS, timeout=20)
+            resp = requests.get(url, params=params, headers=auth_headers, timeout=20)
             resp.raise_for_status()
             data = resp.json()
             for post in data.get("data", {}).get("children", []):

@@ -34,7 +34,16 @@ GitHub Actions (cron, 6am IST)
 1. Go to [console.groq.com](https://console.groq.com/keys)
 2. Create an API key (free tier)
 
-### 4. Push this repo to GitHub
+### 4. Get free Reddit API credentials (read-only, app-only OAuth)
+Reddit's public JSON endpoints now require OAuth even for read-only access.
+1. Go to [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps), click
+   **create another app...**
+2. Choose type **script**, fill in any name/redirect URI (e.g.
+   `http://localhost`) — not used for this flow
+3. After creating, note the **client ID** (string under the app name, looks
+   like a short random string) and **secret**
+
+### 5. Push this repo to GitHub
 ```bash
 cd ai-daily-digest
 git add -A
@@ -43,15 +52,20 @@ git remote add origin https://github.com/<your-username>/<your-repo>.git
 git push -u origin main
 ```
 
-### 5. Add secrets to your GitHub repo
+### 6. Add secrets to your GitHub repo
 Repo → **Settings → Secrets and variables → Actions → New repository secret**.
-Add all four:
+Add:
 - `GEMINI_API_KEY`
 - `GROQ_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
+- `REDDIT_CLIENT_ID`
+- `REDDIT_CLIENT_SECRET`
 
-### 6. Test it
+`GITHUB_TOKEN` is provided automatically by Actions — no setup needed, just
+used to raise the GitHub Search API rate limit from ~10/min to ~30/min.
+
+### 7. Test it
 Go to the **Actions** tab → **AI Daily Digest** workflow → **Run workflow**
 (this uses the `workflow_dispatch` trigger, no need to wait for 6am). Check the
 logs, and check Telegram for the message.
