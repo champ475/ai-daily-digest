@@ -27,33 +27,88 @@ if config.GITHUB_TOKEN:
     GITHUB_HEADERS["Authorization"] = f"Bearer {config.GITHUB_TOKEN}"
 
 
-def fetch_github_trending():
-    """Search for repos CREATED recently, not just pushed to recently.
-    'pushed:>date' sorted by stars surfaces huge established repos (they get
-    pushed to constantly) and drowns out genuinely new launches — 'created'
-    is the actual "this is new" signal."""
+def _github_search(query, per_page, tag):
     items = []
-    since_date = (datetime.datetime.utcnow() - datetime.timedelta(days=config.GITHUB_LOOKBACK_DAYS)).strftime("%Y-%m-%d")
-    for topic in config.GITHUB_TOPICS:
-        query = f"topic:{topic} created:>{since_date} stars:>={config.GITHUB_MIN_STARS}"
-        url = "https://api.github.com/search/repositories"
-        params = {"q": query, "sort": "stars", "order": "desc", "per_page": config.GITHUB_MAX_RESULTS_PER_TOPIC}
-        try:
-            resp = requests.get(url, params=params, headers=GITHUB_HEADERS, timeout=20)
-            resp.raise_for_status()
-            data = resp.json()
-            for repo in data.get("items", []):
-                items.append({
-                    "title": repo["full_name"],
-                    "link": repo["html_url"],
-                    "source": "GitHub",
-                    "summary": repo.get("description") or "",
-                    "meta": f"{repo.get('stargazers_count', 0)}★ · {repo.get('language') or 'n/a'}",
-                })
-        except Exception as e:
-            print(f"[github:{topic}] fetch failed: {e}")
-        time.sleep(1)  # be polite to unauthenticated rate limits
+    url = "https://api.github.com/search/repositories"
+    params = {"q": query, "sort": "stars", "order": "desc", "per_page": per_page}
+    try:
+        resp = requests.get(url, params=params, headers=GITHUB_HEADERS, timeout=20)
+        resp.raise_for_status()
+        data = resp.json()
+        for repo in data.get("items", []):
+            items.append({
+                "title": repo["full_name"],
+                "link": repo["html_url"],
+                "source": "GitHub",
+                "summary": repo.get("description") or "",
+                "meta": f"{repo.get('stargazers_count', 0)}★ · {repo.get('language') or 'n/a'} · {tag}",
+            })
+    except Exception as e:
+        print(f"[github:{tag}] fetch failed: {e}")
     return items
+
+
+def fetch_github_trending():
+    """Two passes, both using free-text search (name+description+readme)
+    instead of exact 'topic:' tag matching:
+
+    'topic:X' requires a repo to have that EXACT string in its GitHub topics
+    array. Many high-star, genuinely relevant repos use no topics at all, or
+    different ones (e.g. langchain-ai/deepagents, 27k+ stars, has no
+    'ai-agents'/'llm-agent'/etc topic — it's tagged 'langchain'/'langgraph').
+    Free-text search is far more permissive. Terms are NOT quoted — an
+    unquoted multi-word query is an AND of terms appearing anywhere in the
+    indexed text, not an exact adjacent phrase, which matters: deepagents'
+    description is "The batteries-included agent harness" — it has "agent"
+    but never the adjacent phrase "AI agent", so quoted search missed it
+    entirely.
+
+    'created:>date' alone (pass 1) also permanently excludes anything not
+    literally launched within the lookback window, no matter how popular or
+    actively maintained — so pass 2 drops the creation-date constraint
+    entirely and searches purely on stars + recent push activity, using
+    broader single-word terms (the 1000+ star bar already filters noise, so
+    it can afford wider recall than pass 1's multi-word AND queries).
+    """
+    items = []
+    new_since = (datetime.datetime.utcnow() - datetime.timedelta(days=config.GITHUB_LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+    hot_since = (datetime.datetime.utcnow() - datetime.timedelta(days=21)).strftime("%Y-%m-%d")
+    for keyword in config.GITHUB_KEYWORDS:
+        items.extend(_github_search(
+            f"{keyword} created:>{new_since} stars:>={config.GITHUB_MIN_STARS}",
+            config.GITHUB_MAX_RESULTS_PER_TOPIC, "new",
+        ))
+        time.sleep(1)
+    for keyword in config.GITHUB_KEYWORDS:
+        items.extend(_github_search(
+            f"{keyword} pushed:>{hot_since} stars:>={config.GITHUB_HOT_MIN_STARS}",
+            config.GITHUB_HOT_MAX_RESULTS, "high-star",
+        ))
+        time.sleep(1)
+
+    # Multiple keyword queries return overlapping/duplicate repos (same repo
+    # matches several phrases) and, with per_page=100 x 5 keywords, can
+    # return 500+ raw items — enough to crowd every other source out of the
+    # shared MAX_ITEMS_FOR_PROMPT cap downstream. Dedupe by link and cap
+    # here so GitHub can't structurally dominate. Cap "new" and "high-star"
+    # separately (not just top-N by stars overall) — a pure star-sort would
+    # bury every low-star new repo under the high-star pass's much bigger
+    # numbers and defeat the whole point of having a "new" pass.
+    seen_links = set()
+    deduped = []
+    for item in items:
+        if item["link"] in seen_links:
+            continue
+        seen_links.add(item["link"])
+        deduped.append(item)
+
+    def stars(item):
+        return int(item["meta"].split("★")[0].replace(",", ""))
+
+    new_items = sorted([i for i in deduped if i["meta"].endswith("new")], key=stars, reverse=True)
+    hot_items = sorted([i for i in deduped if i["meta"].endswith("high-star")], key=stars, reverse=True)
+    half = config.GITHUB_TOTAL_CAP // 2
+    return new_items[:half] + hot_items[:config.GITHUB_TOTAL_CAP - half]
 
 
 def fetch_arxiv():

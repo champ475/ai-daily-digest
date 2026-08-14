@@ -44,16 +44,33 @@ MAX_ITEMS_FOR_PROMPT = 50
 PRIORITY_KEYWORDS = ["benchmark", "evaluation", "eval", "agent", "agentic"]
 
 # ---------------------------------------------------------------------------
-# GitHub trending repos (via official Search API, topic-based)
-# Filtered on repo CREATION date, not push date — broad topics like
-# "artificial-intelligence"/"machine-learning" mostly surface huge
-# established repos (they push constantly) and were dropped in favor of
-# narrower agent/tooling-focused topics.
+# GitHub repos (via official Search API). Free-text keyword search
+# (matches name+description), NOT GitHub's 'topic:' tag field — many
+# high-star, genuinely relevant repos carry no topics or different ones
+# (e.g. langchain-ai/deepagents has no 'ai-agents' topic at all), so
+# requiring an exact topic match silently excludes them regardless of
+# popularity. Two passes per keyword: new repos (created recently, lower
+# star bar) and established-but-hot repos (no creation-date limit, high
+# star bar, must have been pushed to recently) — see fetch_github_trending.
 # ---------------------------------------------------------------------------
-GITHUB_TOPICS = ["ai-agents", "llm-agent", "agentic-ai", "mcp", "llm", "ai-coding-assistant"]
-GITHUB_MIN_STARS = 40           # raised from 15 — filters out zero-traction noise while still catching fast-risers
-GITHUB_LOOKBACK_DAYS = 7         # repos created within last N days
-GITHUB_MAX_RESULTS_PER_TOPIC = 12
+GITHUB_KEYWORDS = ["AI agent", "LLM agent", "agentic AI", "MCP server", "AI coding agent"]
+# Single bare words (e.g. "agent" alone) are dominated by an enormous pool
+# of mega-star repos loosely matching that one word, which pushes genuinely
+# relevant mid-tier repos (e.g. a 27k-star repo) far past any usable
+# per_page cutoff — confirmed: langchain-ai/deepagents (27,761★) ranked
+# outside the top 100 for bare "agent", but rank 88/100 for the two-word
+# "AI agent". So the high-star pass reuses the same multi-word keywords,
+# just with a much higher per-page limit (see GITHUB_HOT_MAX_RESULTS).
+GITHUB_MIN_STARS = 40            # bar for the "new repo" pass
+GITHUB_HOT_MIN_STARS = 1000      # bar for the "established/high-star" pass
+GITHUB_LOOKBACK_DAYS = 7         # new-repo pass: created within last N days
+GITHUB_MAX_RESULTS_PER_TOPIC = 10
+GITHUB_HOT_MAX_RESULTS = 100     # GitHub's API max per_page — needed for relevant repos to rank within reach
+# Raw fetch across 5 keywords x 2 passes x up to 100/page can return 500+
+# items after dedup — capped here (split evenly between "new" and
+# "high-star") so GitHub can't crowd arXiv/HN/RSS out of the shared
+# MAX_ITEMS_FOR_PROMPT cap downstream.
+GITHUB_TOTAL_CAP = 40
 
 # ---------------------------------------------------------------------------
 # arXiv categories to pull recent papers from
@@ -94,26 +111,31 @@ not a refresher on tools they already know. They care most about:
 - New or recently-launched agent frameworks, agentic workflows, agent skills/tools,
   and dev tooling for building AI applications (e.g. a new agent harness, a new
   MCP server, a new coding-agent skill, a new memory/context system for agents)
-- GitHub repos that are NEW or fast-growing RIGHT NOW — not repos that are simply
-  popular or get pushed to daily. A repo with fewer stars but launched this week is
-  more interesting than a 50k-star repo with a routine commit. Among the new repos
-  in the list, treat higher star counts (given in the meta field) as a real signal
-  of quality/traction — prefer a new repo with 200 stars over one with 2, all else
-  equal, since that reflects genuine community interest rather than just novelty.
+- GitHub repos that are either NEW/fast-growing RIGHT NOW, or established but
+  genuinely popular and actively maintained AI/agent-specific tools (high star
+  count, recently pushed to) — both are valuable, don't require "launched this
+  week" for a repo to qualify. Treat star count (given in the meta field) as a
+  real signal of quality/traction throughout — a repo with 5,000 stars is worth
+  surfacing even if it's a year old, as long as it's still being actively
+  developed and directly relevant to agents/LLM tooling.
 - Research papers on evaluation, benchmarking, and agent capability measurement
   are especially high-value — new benchmarks, new evals, papers exposing gaps in
   how agents/models are currently measured
 - Other research with real practical or notable implications (not just incremental)
 - Startup/funding news only when it signals a real shift (new major player, big raise, acquisition)
 
-Aggressively deprioritize or skip entirely:
-- Long-established, widely-known projects (e.g. TensorFlow, PyTorch, LangChain,
-  AutoGPT, Streamlit, Transformers) UNLESS there's a genuinely new, notable
-  development about them specifically today — being in the raw item list is not
-  enough, "X is a popular repo for Y" is not news
+Deprioritize or skip entirely:
+- Generic, non-agent-specific ML infrastructure that's famous mainly for being
+  foundational rather than for anything happening with it today (e.g.
+  TensorFlow, PyTorch, generic "Transformers" library mentions) — these are
+  the "everyone already knows this exists" case, unlike an actively-updated
+  agent/tooling repo which is still worth surfacing on its own merits
 - Generic AI hype pieces, opinion pieces without new information
 - Minor version bumps or purely marketing fluff
-- Filler descriptions that just restate what a well-known tool does
+- Filler descriptions that just restate what a well-known tool does — if
+  covering an established repo, say what's specifically notable about it
+  (what it does, why the star count/momentum is deserved), not just "X is
+  popular for Y"
 """
 
 MAX_TOP_STORIES = 8
