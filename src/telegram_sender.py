@@ -24,6 +24,9 @@ def _markdown_to_telegram_html(text: str) -> str:
     # Bold **text** -> <b>text</b>
     text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", text)
 
+    # Italic _text_ -> <i>text</i> (e.g. the version stamp line)
+    text = re.sub(r"(?<!\w)_([^_\n]+)_(?!\w)", r"<i>\1</i>", text)
+
     return text.strip()
 
 
