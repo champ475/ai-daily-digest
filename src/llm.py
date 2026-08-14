@@ -17,7 +17,7 @@ def _call_gemini(prompt: str) -> str:
         headers={"Content-Type": "application/json", "x-goog-api-key": config.GEMINI_API_KEY},
         data=json.dumps({
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.4, "maxOutputTokens": 4096},
+            "generationConfig": {"temperature": 0.4, "maxOutputTokens": 8192},
         }),
         timeout=90,
     )
@@ -37,7 +37,7 @@ def _call_groq(prompt: str, api_key: str) -> str:
             "model": config.GROQ_MODEL,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.4,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
         }),
         timeout=90,
     )
