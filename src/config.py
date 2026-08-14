@@ -23,8 +23,13 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 # ---------------------------------------------------------------------------
 # LLM settings
 # ---------------------------------------------------------------------------
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-flash-latest"
 GROQ_MODEL = "llama-3.3-70b-versatile"
+# Hard cap on raw items sent into the LLM prompt — with 4 sources fetching
+# freely (GitHub alone can return 60), the deduped list can exceed request
+# body size limits (seen: Groq 413 Payload Too Large at ~113 items). Applied
+# after dedupe, right before prompt construction.
+MAX_ITEMS_FOR_PROMPT = 70
 
 # ---------------------------------------------------------------------------
 # GitHub trending repos (via official Search API, topic-based)

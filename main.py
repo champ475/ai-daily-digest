@@ -23,6 +23,10 @@ def main():
     deduped = dedupe_items(raw_items)
     print(f"After dedupe: {len(deduped)} items")
 
+    if len(deduped) > config.MAX_ITEMS_FOR_PROMPT:
+        print(f"Capping to {config.MAX_ITEMS_FOR_PROMPT} items for LLM prompt (was {len(deduped)})")
+        deduped = deduped[:config.MAX_ITEMS_FOR_PROMPT]
+
     print("Calling LLM for synthesis...")
     digest_markdown = llm.synthesize_digest(deduped)
     print("--- DIGEST PREVIEW ---")
