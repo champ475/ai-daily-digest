@@ -19,8 +19,6 @@ GROQ_API_KEYS = [
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
-REDDIT_CLIENT_ID = os.environ.get("REDDIT_CLIENT_ID", "")
-REDDIT_CLIENT_SECRET = os.environ.get("REDDIT_CLIENT_SECRET", "")
 
 # ---------------------------------------------------------------------------
 # LLM settings
@@ -49,13 +47,6 @@ ARXIV_MAX_RESULTS = 40
 HN_QUERIES = ["AI", "LLM", "agent", "OpenAI", "Anthropic", "GitHub Copilot"]
 HN_MIN_POINTS = 30
 HN_MAX_RESULTS_PER_QUERY = 15
-
-# ---------------------------------------------------------------------------
-# Reddit (public read-only JSON endpoints, no auth needed)
-# ---------------------------------------------------------------------------
-REDDIT_SUBREDDITS = ["LocalLLaMA", "MachineLearning", "singularity", "artificial"]
-REDDIT_MAX_RESULTS_PER_SUB = 10
-REDDIT_MIN_UPVOTES = 25
 
 # ---------------------------------------------------------------------------
 # RSS/Atom blogs — official company + community sources

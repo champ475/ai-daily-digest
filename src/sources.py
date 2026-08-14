@@ -4,7 +4,7 @@ with a normalized shape:
     {
         "title": str,
         "link": str,
-        "source": str,        # e.g. "GitHub", "arXiv", "HN", "Reddit", "OpenAI Blog"
+        "source": str,        # e.g. "GitHub", "arXiv", "HN", "OpenAI Blog"
         "summary": str,       # short description/abstract, may be empty
         "meta": str,          # extra signal e.g. "1.2k stars", "450 points", "120 upvotes"
     }
@@ -113,58 +113,6 @@ def fetch_hackernews():
     return items
 
 
-def _get_reddit_token():
-    """App-only OAuth (client_credentials grant) — read-only access, no user login needed."""
-    if not (config.REDDIT_CLIENT_ID and config.REDDIT_CLIENT_SECRET):
-        return None
-    try:
-        resp = requests.post(
-            "https://www.reddit.com/api/v1/access_token",
-            data={"grant_type": "client_credentials"},
-            auth=(config.REDDIT_CLIENT_ID, config.REDDIT_CLIENT_SECRET),
-            headers=HEADERS,
-            timeout=20,
-        )
-        resp.raise_for_status()
-        return resp.json().get("access_token")
-    except Exception as e:
-        print(f"[reddit] token fetch failed: {e}")
-        return None
-
-
-def fetch_reddit():
-    items = []
-    token = _get_reddit_token()
-    if not token:
-        print("[reddit] no OAuth token (REDDIT_CLIENT_ID/SECRET not set or auth failed), skipping")
-        return items
-    auth_headers = dict(HEADERS)
-    auth_headers["Authorization"] = f"Bearer {token}"
-    for sub in config.REDDIT_SUBREDDITS:
-        url = f"https://oauth.reddit.com/r/{sub}/top.json"
-        params = {"t": "day", "limit": config.REDDIT_MAX_RESULTS_PER_SUB}
-        try:
-            resp = requests.get(url, params=params, headers=auth_headers, timeout=20)
-            resp.raise_for_status()
-            data = resp.json()
-            for post in data.get("data", {}).get("children", []):
-                d = post.get("data", {})
-                if d.get("ups", 0) < config.REDDIT_MIN_UPVOTES:
-                    continue
-                link = d.get("url_overridden_by_dest") or f"https://reddit.com{d.get('permalink', '')}"
-                items.append({
-                    "title": d.get("title", ""),
-                    "link": link,
-                    "source": f"r/{sub}",
-                    "summary": (d.get("selftext") or "")[:400],
-                    "meta": f"{d.get('ups', 0)} upvotes · {d.get('num_comments', 0)} comments",
-                })
-        except Exception as e:
-            print(f"[reddit:{sub}] fetch failed: {e}")
-        time.sleep(1)
-    return items
-
-
 def fetch_rss():
     items = []
     cutoff = datetime.datetime.utcnow() - datetime.timedelta(hours=config.RSS_LOOKBACK_HOURS)
@@ -205,7 +153,6 @@ def fetch_all():
         ("GitHub", fetch_github_trending),
         ("arXiv", fetch_arxiv),
         ("Hacker News", fetch_hackernews),
-        ("Reddit", fetch_reddit),
         ("RSS Blogs", fetch_rss),
     ]
     for label, fn in fetchers:

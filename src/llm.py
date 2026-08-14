@@ -87,7 +87,7 @@ def build_prompt(items):
 
 {config.CURATION_FOCUS}
 
-Below is a raw list of {len(items)} items pulled today from GitHub, arXiv, Hacker News, Reddit, and company blogs. Some are duplicates or low-signal — ignore those. Select and synthesize the best ones into a digest.
+Below is a raw list of {len(items)} items pulled today from GitHub, arXiv, Hacker News, and company blogs. Some are duplicates or low-signal — ignore those. Select and synthesize the best ones into a digest.
 
 RAW ITEMS:
 {items_block}

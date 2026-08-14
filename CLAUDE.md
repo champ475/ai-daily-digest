@@ -9,7 +9,7 @@ A daily AI news digest that runs unattended on GitHub Actions and sends a
 curated Telegram message every morning. No server, no database, no paid
 dependencies — everything runs on free tiers.
 
-Pipeline: **fetch (5 sources) → dedupe → LLM synthesis (Gemini, Groq fallback)
+Pipeline: **fetch (4 sources) → dedupe → LLM synthesis (Gemini, Groq fallback)
 → send (Telegram)**. One run = one `python main.py` execution = one message
 (or a few chunked messages) delivered.
 
@@ -36,7 +36,7 @@ like this — **do not change this shape without updating every consumer**
 {
     "title": str,
     "link": str,
-    "source": str,     # display name, e.g. "GitHub", "arXiv", "r/LocalLLaMA"
+    "source": str,     # display name, e.g. "GitHub", "arXiv", "Hacker News"
     "summary": str,    # can be "", used as LLM context, not required for display
     "meta": str,        # short signal string, e.g. "1.2k★ · Python", "450 points"
 }
@@ -80,13 +80,18 @@ python -c "from src import sources, llm; items = sources.fetch_all(); print(llm.
 
 ## Network notes
 
-- `api.github.com` search endpoint is used unauthenticated (rate limit ~10
-  req/min) — fine for one daily run, don't increase call frequency without
-  adding a `GITHUB_TOKEN`.
-- Reddit's public `.json` endpoints require a real `User-Agent` header (set in
-  `sources.py`) or they 429 — don't strip that header.
+- `api.github.com` search endpoint uses `GITHUB_TOKEN` (Actions provides this
+  automatically, no secret needed) for a higher rate limit (~30 req/min vs
+  ~10 unauthenticated) — don't strip that header.
+- No Reddit source — Reddit now gates API access behind manual
+  registration/approval beyond app creation, dropped to keep setup
+  friction-free. See `git log` for a prior OAuth (`client_credentials`)
+  implementation if re-adding later.
 - arXiv API is polite-use — don't drop the delay/rate discipline if you add
-  more categories or increase `ARXIV_MAX_RESULTS` significantly.
+  more categories or increase `ARXIV_MAX_RESULTS` significantly. Also note:
+  `requests` double-encodes literal `+` in query params to `%2B` — the
+  category filter must be joined with `" OR "` (spaces), not `"+OR+"`, or
+  the query silently returns 0 results.
 
 ## Design decisions worth knowing before you change things
 
