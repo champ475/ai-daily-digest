@@ -27,32 +27,48 @@ if config.GITHUB_TOKEN:
     GITHUB_HEADERS["Authorization"] = f"Bearer {config.GITHUB_TOKEN}"
 
 
-def fetch_github_trending():
-    """Search for repos CREATED recently, not just pushed to recently.
-    'pushed:>date' sorted by stars surfaces huge established repos (they get
-    pushed to constantly) and drowns out genuinely new launches — 'created'
-    is the actual "this is new" signal."""
+def _github_search(query, per_page, tag):
     items = []
-    since_date = (datetime.datetime.utcnow() - datetime.timedelta(days=config.GITHUB_LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+    url = "https://api.github.com/search/repositories"
+    params = {"q": query, "sort": "stars", "order": "desc", "per_page": per_page}
+    try:
+        resp = requests.get(url, params=params, headers=GITHUB_HEADERS, timeout=20)
+        resp.raise_for_status()
+        data = resp.json()
+        for repo in data.get("items", []):
+            items.append({
+                "title": repo["full_name"],
+                "link": repo["html_url"],
+                "source": "GitHub",
+                "summary": repo.get("description") or "",
+                "meta": f"{repo.get('stargazers_count', 0)}★ · {repo.get('language') or 'n/a'} · {tag}",
+            })
+    except Exception as e:
+        print(f"[github:{tag}] fetch failed: {e}")
+    return items
+
+
+def fetch_github_trending():
+    """Hybrid: two passes per topic — (a) NEW repos (created recently, low
+    star bar since they haven't had time to accumulate stars) and (b) HIGH-
+    QUALITY repos with real weekly momentum (pushed recently, high star bar).
+    (a) alone surfaces obscure/low-signal projects; (b) alone surfaces only
+    already-huge repos. Combined gives both "genuinely new" and "proven
+    popular" signal, tagged in meta so the LLM/reader can tell which."""
+    items = []
+    new_since = (datetime.datetime.utcnow() - datetime.timedelta(days=config.GITHUB_LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+    hot_since = (datetime.datetime.utcnow() - datetime.timedelta(days=3)).strftime("%Y-%m-%d")
     for topic in config.GITHUB_TOPICS:
-        query = f"topic:{topic} created:>{since_date} stars:>={config.GITHUB_MIN_STARS}"
-        url = "https://api.github.com/search/repositories"
-        params = {"q": query, "sort": "stars", "order": "desc", "per_page": config.GITHUB_MAX_RESULTS_PER_TOPIC}
-        try:
-            resp = requests.get(url, params=params, headers=GITHUB_HEADERS, timeout=20)
-            resp.raise_for_status()
-            data = resp.json()
-            for repo in data.get("items", []):
-                items.append({
-                    "title": repo["full_name"],
-                    "link": repo["html_url"],
-                    "source": "GitHub",
-                    "summary": repo.get("description") or "",
-                    "meta": f"{repo.get('stargazers_count', 0)}★ · {repo.get('language') or 'n/a'}",
-                })
-        except Exception as e:
-            print(f"[github:{topic}] fetch failed: {e}")
-        time.sleep(1)  # be polite to unauthenticated rate limits
+        items.extend(_github_search(
+            f"topic:{topic} created:>{new_since} stars:>={config.GITHUB_MIN_STARS}",
+            config.GITHUB_MAX_RESULTS_PER_TOPIC, "new",
+        ))
+        time.sleep(1)
+        items.extend(_github_search(
+            f"topic:{topic} pushed:>{hot_since} stars:>={config.GITHUB_HOT_MIN_STARS}",
+            config.GITHUB_MAX_RESULTS_PER_TOPIC, "high-star",
+        ))
+        time.sleep(1)
     return items
 
 

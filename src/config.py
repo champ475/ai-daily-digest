@@ -47,9 +47,10 @@ MAX_ITEMS_FOR_PROMPT = 50
 # narrower agent/tooling-focused topics.
 # ---------------------------------------------------------------------------
 GITHUB_TOPICS = ["ai-agents", "llm-agent", "agentic-ai", "mcp", "llm", "ai-coding-assistant"]
-GITHUB_MIN_STARS = 15           # lower bar — new repos haven't had time to accumulate stars yet
-GITHUB_LOOKBACK_DAYS = 7         # repos created within last N days
-GITHUB_MAX_RESULTS_PER_TOPIC = 12
+GITHUB_MIN_STARS = 15           # lower bar for the "new repo" pass — new repos haven't had time to accumulate stars yet
+GITHUB_HOT_MIN_STARS = 300       # higher bar for the "high-star momentum" pass
+GITHUB_LOOKBACK_DAYS = 7         # repos created within last N days (new-repo pass)
+GITHUB_MAX_RESULTS_PER_TOPIC = 10
 
 # ---------------------------------------------------------------------------
 # arXiv categories to pull recent papers from
