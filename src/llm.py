@@ -37,10 +37,16 @@ def _call_groq(prompt: str, api_key: str) -> str:
             "model": config.GROQ_MODEL,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.4,
-            "max_tokens": 8192,
+            # Groq's free tier caps combined prompt+completion at 12,000
+            # tokens/minute (TPM) — 8192 alone (Gemini's setting) eats 68%
+            # of that regardless of prompt size, so Groq needs its own,
+            # smaller budget to leave room for the prompt.
+            "max_tokens": 6000,
         }),
         timeout=90,
     )
+    if resp.status_code >= 400:
+        print(f"[groq] error {resp.status_code}: {resp.text[:300]}")
     resp.raise_for_status()
     data = resp.json()
     return data["choices"][0]["message"]["content"]
