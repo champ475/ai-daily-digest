@@ -38,6 +38,10 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 # summary lengths, so this is set with real margin, not just under the
 # lowest failure point observed.
 MAX_ITEMS_FOR_PROMPT = 50
+# Items matching these keywords (title/summary, case-insensitive) are
+# pushed to the front of the list before the MAX_ITEMS_FOR_PROMPT cap is
+# applied, so they survive even when raw fetch volume is high.
+PRIORITY_KEYWORDS = ["benchmark", "evaluation", "eval", "agent", "agentic"]
 
 # ---------------------------------------------------------------------------
 # GitHub trending repos (via official Search API, topic-based)

@@ -8,7 +8,7 @@ import sys
 import datetime
 
 from src import config, sources, llm, telegram_sender
-from src.util import dedupe_items
+from src.util import dedupe_items, prioritize_keywords
 
 
 def main():
@@ -25,7 +25,8 @@ def main():
     print(f"After dedupe: {len(deduped)} items")
 
     if len(deduped) > config.MAX_ITEMS_FOR_PROMPT:
-        print(f"Capping to {config.MAX_ITEMS_FOR_PROMPT} items for LLM prompt (was {len(deduped)})")
+        deduped = prioritize_keywords(deduped, config.PRIORITY_KEYWORDS)
+        print(f"Capping to {config.MAX_ITEMS_FOR_PROMPT} items for LLM prompt (was {len(deduped)}, priority keywords applied)")
         deduped = deduped[:config.MAX_ITEMS_FOR_PROMPT]
 
     print("Calling LLM for synthesis...")

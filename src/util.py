@@ -36,6 +36,20 @@ def dedupe_items(items, similarity_threshold=0.75):
     return kept
 
 
+def prioritize_keywords(items, keywords):
+    """Stable-sort items so ones matching any keyword (in title or summary,
+    case-insensitive) come first. Used to make sure high-value categories
+    (e.g. evaluation/benchmark papers) survive the MAX_ITEMS_FOR_PROMPT cap
+    even when the raw fetch returns more items than fit in the prompt."""
+    keywords = [k.lower() for k in keywords]
+
+    def matches(item):
+        text = (item.get("title", "") + " " + item.get("summary", "")).lower()
+        return any(k in text for k in keywords)
+
+    return sorted(items, key=lambda item: not matches(item))
+
+
 def chunk_text(text: str, max_len: int = 4000):
     """Split text into chunks under max_len, breaking on paragraph boundaries
     where possible so Telegram messages don't get cut mid-sentence."""
