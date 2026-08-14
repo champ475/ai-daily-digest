@@ -3,6 +3,7 @@ Entry point for the AI Daily Digest. Run manually with `python main.py`,
 or scheduled via .github/workflows/daily-digest.yml
 """
 
+import os
 import sys
 import datetime
 
@@ -11,7 +12,7 @@ from src.util import dedupe_items
 
 
 def main():
-    print(f"=== AI Daily Digest run started at {datetime.datetime.utcnow().isoformat()}Z ===")
+    print(f"=== AI Daily Digest run started at {datetime.datetime.utcnow().isoformat()}Z (version: {config.DIGEST_VERSION}) ===")
 
     raw_items = sources.fetch_all()
     print(f"Total raw items fetched: {len(raw_items)}")
@@ -29,12 +30,25 @@ def main():
 
     print("Calling LLM for synthesis...")
     digest_markdown = llm.synthesize_digest(deduped)
+    # Stamp the version/branch right under the title so it's visible in the
+    # delivered message — lets multiple experiment runs be told apart later.
+    digest_markdown = digest_markdown.replace(
+        "# AI Daily Digest", f"# AI Daily Digest\n_Version: {config.DIGEST_VERSION}_", 1
+    )
     print("--- DIGEST PREVIEW ---")
     print(digest_markdown[:1000])
     print("--- END PREVIEW ---")
 
-    print("Sending to Telegram...")
-    telegram_sender.send_digest(digest_markdown)
+    if config.DRY_RUN:
+        out_dir = "dry_run_output"
+        os.makedirs(out_dir, exist_ok=True)
+        out_path = os.path.join(out_dir, f"digest_{config.DIGEST_VERSION}.md")
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(digest_markdown)
+        print(f"[dry-run] Skipped Telegram send, wrote digest to {out_path}")
+    else:
+        print("Sending to Telegram...")
+        telegram_sender.send_digest(digest_markdown)
 
     print("=== Done ===")
 

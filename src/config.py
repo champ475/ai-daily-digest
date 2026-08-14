@@ -21,6 +21,13 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
 # ---------------------------------------------------------------------------
+# Experiment tracking — lets us tag which branch/variant produced a given
+# digest, and run locally without hitting the real Telegram chat.
+# ---------------------------------------------------------------------------
+DIGEST_VERSION = os.environ.get("DIGEST_VERSION", "main")
+DRY_RUN = os.environ.get("DRY_RUN", "") == "1"
+
+# ---------------------------------------------------------------------------
 # LLM settings
 # ---------------------------------------------------------------------------
 GEMINI_MODEL = "gemini-flash-latest"
