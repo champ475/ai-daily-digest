@@ -30,9 +30,13 @@ GitHub Actions (cron, 6am IST)
 1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
 2. Create an API key (free tier — generous daily quota, plenty for one call/day)
 
-### 3. Get a free Groq API key (fallback)
+### 3. Get free Groq API key(s) (fallback, with rotation)
 1. Go to [console.groq.com](https://console.groq.com/keys)
 2. Create an API key (free tier)
+3. Optional but recommended: create a **second** key too (e.g. a second Groq
+   account) as `GROQ_API_KEY_2`. Order of attempts is Gemini → Groq key 1 →
+   Groq key 2 — if one Groq key hits its free-tier rate limit, the next is
+   tried automatically.
 
 ### 4. Get free Reddit API credentials (read-only, app-only OAuth)
 Reddit's public JSON endpoints now require OAuth even for read-only access.
@@ -57,6 +61,7 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 Add:
 - `GEMINI_API_KEY`
 - `GROQ_API_KEY`
+- `GROQ_API_KEY_2` (optional, second Groq account for rotation)
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 - `REDDIT_CLIENT_ID`

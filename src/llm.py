@@ -26,13 +26,11 @@ def _call_gemini(prompt: str) -> str:
     return data["candidates"][0]["content"]["parts"][0]["text"]
 
 
-def _call_groq(prompt: str) -> str:
-    if not config.GROQ_API_KEY:
-        raise RuntimeError("GROQ_API_KEY not set")
+def _call_groq(prompt: str, api_key: str) -> str:
     resp = requests.post(
         GROQ_URL,
         headers={
-            "Authorization": f"Bearer {config.GROQ_API_KEY}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         },
         data=json.dumps({
@@ -50,12 +48,25 @@ def _call_groq(prompt: str) -> str:
 
 def call_llm(prompt: str) -> str:
     """Try Gemini first; on any failure (missing key, quota, network, bad
-    response) fall back to Groq. Raises only if both fail."""
+    response) fall back to Groq, rotating through each configured Groq key
+    in order (e.g. when one hits a free-tier rate limit). Raises only if
+    Gemini and every Groq key fail."""
     try:
         return _call_gemini(prompt)
     except Exception as e:
         print(f"[llm] Gemini failed, falling back to Groq: {e}")
-    return _call_groq(prompt)
+
+    if not config.GROQ_API_KEYS:
+        raise RuntimeError("No Groq API keys set (GROQ_API_KEY / GROQ_API_KEY_2)")
+
+    last_error = None
+    for i, key in enumerate(config.GROQ_API_KEYS):
+        try:
+            return _call_groq(prompt, key)
+        except Exception as e:
+            last_error = e
+            print(f"[llm] Groq key #{i+1} failed: {e}")
+    raise last_error
 
 
 def _format_items_for_prompt(items):

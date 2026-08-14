@@ -10,7 +10,12 @@ import os
 # Secrets (set these as GitHub Actions repo secrets, or env vars locally)
 # ---------------------------------------------------------------------------
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+# Multiple Groq keys for rotation when one hits free-tier rate limits.
+# GROQ_API_KEY is the first/primary key; GROQ_API_KEY_2 is an optional second.
+GROQ_API_KEYS = [
+    k for k in [os.environ.get("GROQ_API_KEY", ""), os.environ.get("GROQ_API_KEY_2", "")]
+    if k
+]
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
