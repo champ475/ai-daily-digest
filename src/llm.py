@@ -86,7 +86,7 @@ def _format_items_for_prompt(items):
             f"{i+1}. [{item['source']}] {item['title']}\n"
             f"   Link: {item['link']}\n"
             f"   Meta: {item.get('meta', '')}\n"
-            f"   Summary: {item.get('summary', '')[:300]}"
+            f"   Summary: {item.get('summary', '')[:200]}"
         )
     return "\n".join(lines)
 
