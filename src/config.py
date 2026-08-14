@@ -47,7 +47,7 @@ MAX_ITEMS_FOR_PROMPT = 50
 # narrower agent/tooling-focused topics.
 # ---------------------------------------------------------------------------
 GITHUB_TOPICS = ["ai-agents", "llm-agent", "agentic-ai", "mcp", "llm", "ai-coding-assistant"]
-GITHUB_MIN_STARS = 15           # lower bar — new repos haven't had time to accumulate stars yet
+GITHUB_MIN_STARS = 40           # raised from 15 — filters out zero-traction noise while still catching fast-risers
 GITHUB_LOOKBACK_DAYS = 7         # repos created within last N days
 GITHUB_MAX_RESULTS_PER_TOPIC = 12
 
@@ -92,7 +92,10 @@ not a refresher on tools they already know. They care most about:
   MCP server, a new coding-agent skill, a new memory/context system for agents)
 - GitHub repos that are NEW or fast-growing RIGHT NOW — not repos that are simply
   popular or get pushed to daily. A repo with fewer stars but launched this week is
-  more interesting than a 50k-star repo with a routine commit.
+  more interesting than a 50k-star repo with a routine commit. Among the new repos
+  in the list, treat higher star counts (given in the meta field) as a real signal
+  of quality/traction — prefer a new repo with 200 stars over one with 2, all else
+  equal, since that reflects genuine community interest rather than just novelty.
 - Research papers on evaluation, benchmarking, and agent capability measurement
   are especially high-value — new benchmarks, new evals, papers exposing gaps in
   how agents/models are currently measured
