@@ -113,10 +113,10 @@ Produce the digest in this exact Markdown structure (omit a section entirely if 
 # AI Daily Digest
 
 ## 🔥 Top Stories
-(up to {config.MAX_TOP_STORIES} items — the most significant news of the day. For each: a bold title as a link, then 1-2 sentences explaining what happened and why it matters. Not just a headline rewrite — add the "so what".)
+(up to {config.MAX_TOP_STORIES} items — the most significant news of the day. For each: a bold title as a link, then 1-2 sentences explaining what happened and why it matters. If the item is a GitHub repo, include its star count from the Meta field in parentheses right after the title. Not just a headline rewrite — add the "so what".)
 
 ## 🛠️ Repos & Tools Worth a Look
-(up to {config.MAX_REPOS} items — new or fast-growing open-source tools/repos. Title as link, one line on what it does and why it's notable.)
+(up to {config.MAX_REPOS} items — new or fast-growing open-source tools/repos. Title as link, then the star count from the item's Meta field in parentheses (e.g. "(340★)"), then one line on what it does and why it's notable.)
 
 ## 📄 Papers Worth Skimming
 (up to {config.MAX_PAPERS} items — research with real practical or notable implications. Title as link, one sentence on the core idea/finding.)
